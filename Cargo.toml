@@ -5,4 +5,4 @@ authors = ["Mikael Voss <mvs@nyantec.com>"]
 license = "LGPL-3.0"
 
 [dependencies]
-libsensors-sys = "*"
+libsensors-sys = { git = "https://github.com/nyantec/libsensors-sys" }
