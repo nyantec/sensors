@@ -1,0 +1,8 @@
+[package]
+name = "sensors"
+version = "0.0.0"
+authors = ["Mikael Voss <mvs@nyantec.com>"]
+license = "LGPL-3.0"
+
+[dependencies]
+libsensors-sys = "*"
