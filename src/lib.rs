@@ -46,11 +46,3 @@ impl Sensors {
 		}
 	}
 }
-
-impl Drop for Chip {
-	fn drop(&mut self) {
-		unsafe {
-			libsensors_sys::sensors_free_chip_name(&mut self.chip_name);
-		}
-	}
-}
