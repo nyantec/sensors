@@ -3,6 +3,8 @@ name = "sensors"
 version = "0.0.0"
 authors = ["Mikael Voss <mvs@nyantec.com>"]
 license = "LGPL-3.0"
+build = "build.rs"
 
 [dependencies]
-libsensors-sys = { git = "https://github.com/nyantec/libsensors-sys" }
+libsensors-sys = { git = "https://github.com/nyantec/libsensors-sys"}
+libc = "*"
