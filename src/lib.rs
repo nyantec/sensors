@@ -103,21 +103,3 @@ impl Iterator for Feature {
         None
     }
 }
-
-
-#[cfg(test)]
-mod tests {
-	use super::*;
-    #[test]
-    fn iter_chips() {
-    	let s = Sensors::new();
-        for c in s {
-            for f in c {
-                for sf in f {
-                    println!("{:?}", sf);
-                }
-
-            }
-        }
-    }
-}
