@@ -12,25 +12,42 @@ static INIT: Once = ONCE_INIT;
 #[derive(Copy, Clone, Debug)]
 pub struct Sensors {
 	marker: PhantomData<()>,
-	chip_iterator_index: i32
+
 }
 
 #[derive(Debug)]
 pub struct Chip {
-	chip_name: libsensors_sys::sensors_chip_name,
-    feature_iterator_index: i32
+	pub chip_name: libsensors_sys::sensors_chip_name,
 }
+
+pub struct ChipIterator {
+    index: i32
+}
+
 #[derive(Debug)]
 pub struct Feature {
-    chip_name: libsensors_sys::sensors_chip_name,
-	feature: libsensors_sys::sensors_feature,
-    subfeature_iterator_index: i32
+    pub chip_name: libsensors_sys::sensors_chip_name,
+	pub feature: libsensors_sys::sensors_feature
 }
+
+pub struct FeatureIterator {
+    chip_name: libsensors_sys::sensors_chip_name,
+    index: i32
+}
+
 #[derive(Debug)]
 pub struct Subfeature {
+    pub chip_name: libsensors_sys::sensors_chip_name,
+    pub feature: libsensors_sys::sensors_feature,
 	pub subfeature: libsensors_sys::sensors_subfeature,
-    name: String,
+    pub name: String,
     pub value: f64
+}
+
+pub struct SubfeatureIterator {
+    chip_name: libsensors_sys::sensors_chip_name,
+    feature: libsensors_sys::sensors_feature,
+    index: i32
 }
 
 impl Sensors {
@@ -44,10 +61,10 @@ impl Sensors {
 		});
 
 		Sensors {
-			marker: PhantomData,
-			chip_iterator_index: 0
+			marker: PhantomData
 		}
 	}
+
 
 	extern fn cleanup() {
 		unsafe {
@@ -56,35 +73,63 @@ impl Sensors {
 	}
 }
 
-impl Iterator for Sensors {
+impl IntoIterator for Sensors {
+    type Item = Chip;
+    type IntoIter = ChipIterator;
+
+    fn into_iter(self) -> Self::IntoIter {
+        ChipIterator { index: 0 }.into_iter()
+    }
+
+}
+
+impl Iterator for ChipIterator {
     type Item = Chip;
 
     fn next(&mut self) -> Option<Self::Item> {
-    	let chip_ = unsafe { libsensors_sys::sensors_get_detected_chips(ptr::null_mut(), &mut self.chip_iterator_index) };
+        let chip_ = unsafe { libsensors_sys::sensors_get_detected_chips(ptr::null_mut(), &mut self.index) };
         if chip_ != ptr::null_mut() {
-            return Some(Chip { chip_name: unsafe { *chip_ }, feature_iterator_index: 0});
+            return Some(Chip { chip_name: unsafe { *chip_ }});
         };
         None
     }
 }
 
-impl Iterator for Chip {
+impl IntoIterator for Chip {
+    type Item = Feature;
+    type IntoIter = FeatureIterator;
+
+    fn into_iter(self) -> Self::IntoIter {
+        FeatureIterator { index: 0, chip_name: self.chip_name }.into_iter()
+    }
+}
+
+impl Iterator for FeatureIterator {
     type Item = Feature;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let feature_ = unsafe { libsensors_sys::sensors_get_features(&self.chip_name, &mut self.feature_iterator_index) };
+        let feature_ = unsafe { libsensors_sys::sensors_get_features(&self.chip_name, &mut self.index) };
         if feature_ != ptr::null_mut() {
-            return Some(Feature { feature: unsafe { *feature_ }, chip_name: self.chip_name, subfeature_iterator_index: 0 });
+            return Some(Feature { feature: unsafe { *feature_ }, chip_name: self.chip_name });
         };
         None
     }
 }
 
-impl Iterator for Feature {
+impl IntoIterator for Feature {
+    type Item = Subfeature;
+    type IntoIter = SubfeatureIterator;
+
+    fn into_iter(self) -> Self::IntoIter {
+        SubfeatureIterator { index: 0, chip_name: self.chip_name, feature: self.feature }.into_iter()
+    }
+}
+
+impl Iterator for SubfeatureIterator {
     type Item = Subfeature;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let subfeature_ = unsafe { libsensors_sys::sensors_get_all_subfeatures(&self.chip_name, &self.feature, &mut self.subfeature_iterator_index) };
+        let subfeature_ = unsafe { libsensors_sys::sensors_get_all_subfeatures(&self.chip_name, &self.feature, &mut self.index) };
         if subfeature_ != ptr::null_mut() {
             let subfeature = unsafe { *subfeature_ };
             // val will be overwritten, no risk
@@ -96,7 +141,11 @@ impl Iterator for Feature {
                 // check that value was retrieved (if r<0, error occcured)
                 if r >= 0 {
                     let name = unsafe { CStr::from_ptr(subfeature.name) };
-                    return Some(Subfeature { subfeature: unsafe { *subfeature_ }, value:val, name: name.to_string_lossy().into_owned() });
+                    return Some(Subfeature { subfeature: unsafe { *subfeature_ },
+                                             value:val,
+                                             name: name.to_string_lossy().into_owned(),
+                                             chip_name: self.chip_name,
+                                             feature: self.feature });
                 }
             }
         };
