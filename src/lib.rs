@@ -9,7 +9,7 @@ use std::ffi::CStr;
 
 static INIT: Once = ONCE_INIT;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct Sensors {
 	marker: PhantomData<()>,
 	chip_iterator_index: i32
@@ -28,9 +28,9 @@ pub struct Feature {
 }
 #[derive(Debug)]
 pub struct Subfeature {
-	subfeature: libsensors_sys::sensors_subfeature,
+	pub subfeature: libsensors_sys::sensors_subfeature,
     name: String,
-    value: f64
+    pub value: f64
 }
 
 impl Sensors {
