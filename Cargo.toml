@@ -1,10 +1,11 @@
 [package]
 name = "sensors"
 version = "0.0.1"
-authors = ["Mikael Voss <mvs@nyantec.com>"]
+authors = ["nyantec GmbH <dev@nyantec.com>"]
 license = "MirOS"
 build = "build.rs"
+description = "A Rust freindly interface to libsensors-sys"
 
 [dependencies]
-libsensors-sys = { git = "https://github.com/nyantec/libsensors-sys"}
+libsensors-sys = "*"
 libc = "*"
