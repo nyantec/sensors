@@ -25,7 +25,7 @@ pub enum LibsensorsError {
     AccessWrite,
     IO,
     Recursion,
-    Unknown
+    Unknown,
 }
 
 impl LibsensorsError {
@@ -86,13 +86,12 @@ impl std::error::Error for LibsensorsError {
 #[derive(Copy, Clone, Debug)]
 pub struct Sensors {
     marker: PhantomData<()>,
-
 }
 
 #[derive(Copy, Clone, Debug)]
 pub struct BusId {
     bus_type: i16,
-    nr: i16
+    nr: i16,
 }
 
 #[derive(Debug)]
@@ -101,11 +100,11 @@ pub struct Chip {
     prefix: String,
     bus: BusId,
     addr: i32,
-    path: PathBuf
+    path: PathBuf,
 }
 
 pub struct ChipIterator {
-    index: i32
+    index: i32,
 }
 
 /// Data about a single chip feature (or category leader)
@@ -115,12 +114,12 @@ pub struct Feature {
     chip_ptr: *const libsensors::sensors_chip_name,
     name: String,
     number: i32,
-    feature_type: FeatureType
+    feature_type: FeatureType,
 }
 
 pub struct FeatureIterator {
     chip_ptr: *const libsensors::sensors_chip_name,
-    index: i32
+    index: i32,
 }
 
 #[derive(Debug)]
@@ -132,26 +131,24 @@ pub struct Subfeature {
     number: i32,
     subfeature_type: SubfeatureType,
     mapping: i32,
-    flags: u32
+    flags: u32,
 }
 
 pub struct SubfeatureIterator {
     chip_ptr: *const libsensors::sensors_chip_name,
     feature_ptr: *const libsensors::sensors_feature,
-    index: i32
+    index: i32,
 }
 
 impl Sensors {
     pub fn new() -> Self {
-        INIT.call_once(|| {
-            unsafe {
-                assert_eq!(libsensors::sensors_init(std::ptr::null_mut()), 0);
-                assert_eq!(libc::atexit(Self::cleanup), 0);
-            }
+        INIT.call_once(|| unsafe {
+            assert_eq!(libsensors::sensors_init(std::ptr::null_mut()), 0);
+            assert_eq!(libc::atexit(Self::cleanup), 0);
         });
 
         Sensors {
-            marker: PhantomData
+            marker: PhantomData,
         }
     }
 
@@ -175,15 +172,14 @@ impl BusId {
     /// If it could not be found, it returns None
     pub fn get_adapter_name(&self) -> Option<String> {
         let bus_id = libsensors::sensors_bus_id {
-                type_: self.bus_type,
-                nr: self.nr
-            };
+            type_: self.bus_type,
+            nr: self.nr,
+        };
         let cstr_ptr = unsafe { libsensors::sensors_get_adapter_name(&bus_id) };
         if !cstr_ptr.is_null() {
-            let cstr =  unsafe { CStr::from_ptr(cstr_ptr) };
+            let cstr = unsafe { CStr::from_ptr(cstr_ptr) };
             Some(cstr.to_string_lossy().into_owned())
-        }
-        else {
+        } else {
             None
         }
     }
@@ -201,8 +197,8 @@ impl Chip {
             bus: BusId {
                 bus_type: chip.bus.type_,
                 nr: chip.bus.nr,
-                },
-            addr:  chip.addr,
+            },
+            addr: chip.addr,
             path: PathBuf::from(path_cstr.to_string_lossy().into_owned()),
         }
     }
@@ -230,22 +226,23 @@ impl Chip {
     /// Return the chip name from its internal representation.
     pub fn get_name(&self) -> Result<String, LibsensorsError> {
         let mut buffer: [std::os::raw::c_char; 128] = [0; 128];
-        let res = unsafe { libsensors::sensors_snprintf_chip_name(&mut buffer[0], buffer.len(), self.c_ptr()) };
+        let res = unsafe {
+            libsensors::sensors_snprintf_chip_name(&mut buffer[0], buffer.len(), self.c_ptr())
+        };
         if res >= 0 {
             let name_cstr = unsafe { CStr::from_ptr(&buffer[0]) };
             Ok(name_cstr.to_string_lossy().into_owned())
-        }
-        else {
+        } else {
             Err(LibsensorsError::from_i32(res))
         }
     }
 }
 
 impl Feature {
-    unsafe fn from_ptr(ptr: *const libsensors::sensors_feature,
-                       chip: *const libsensors::sensors_chip_name)
-        -> Feature
-    {
+    unsafe fn from_ptr(
+        ptr: *const libsensors::sensors_feature,
+        chip: *const libsensors::sensors_chip_name,
+    ) -> Feature {
         let feature = *ptr;
         let name_cstr = CStr::from_ptr(feature.name);
 
@@ -284,8 +281,7 @@ impl Feature {
                 libc::free(label_ptr as *mut libc::c_void);
             }
             Ok(label)
-        }
-        else {
+        } else {
             Err(LibsensorsError::Unknown)
         }
     }
@@ -293,27 +289,25 @@ impl Feature {
     /// Returns the subfeature of the given type,
     /// if it exists, None otherwise.
     pub fn get_subfeature(&self, subfeature_type: SubfeatureType) -> Option<Subfeature> {
-        let ptr = unsafe { libsensors::sensors_get_subfeature(self.chip_ptr, self.c_ptr(), subfeature_type) };
+        let ptr = unsafe {
+            libsensors::sensors_get_subfeature(self.chip_ptr, self.c_ptr(), subfeature_type)
+        };
 
         if !ptr.is_null() {
-            unsafe {
-                Some(Subfeature::from_ptr(ptr, self.c_ptr(), self.chip_ptr))
-            }
-        }
-        else
-        {
+            unsafe { Some(Subfeature::from_ptr(ptr, self.c_ptr(), self.chip_ptr)) }
+        } else {
             None
         }
     }
 }
 
 impl Subfeature {
-    unsafe fn from_ptr(ptr: *const libsensors::sensors_subfeature,
-                feature: *const libsensors::sensors_feature,
-                chip: *const libsensors::sensors_chip_name)
-        -> Subfeature
-    {
-        let subfeature = *ptr ;
+    unsafe fn from_ptr(
+        ptr: *const libsensors::sensors_subfeature,
+        feature: *const libsensors::sensors_feature,
+        chip: *const libsensors::sensors_chip_name,
+    ) -> Subfeature {
+        let subfeature = *ptr;
         let name_cstr = CStr::from_ptr(subfeature.name);
 
         Subfeature {
@@ -342,8 +336,7 @@ impl Subfeature {
         let res = unsafe { libsensors::sensors_get_value(self.chip_ptr, self.number, &mut value) };
         if res >= 0 {
             Ok(value)
-        }
-        else {
+        } else {
             Err(LibsensorsError::from_i32(res))
         }
     }
@@ -353,8 +346,7 @@ impl Subfeature {
         let res = unsafe { libsensors::sensors_set_value(self.chip_ptr, self.number, value) };
         if res >= 0 {
             Ok(())
-        }
-        else {
+        } else {
             Err(LibsensorsError::from_i32(res))
         }
     }
@@ -367,21 +359,19 @@ impl IntoIterator for Sensors {
     fn into_iter(self) -> Self::IntoIter {
         ChipIterator { index: 0 }.into_iter()
     }
-
 }
 
 impl Iterator for ChipIterator {
     type Item = Chip;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let ptr = unsafe { libsensors::sensors_get_detected_chips(std::ptr::null_mut(), &mut self.index) };
+        let ptr = unsafe {
+            libsensors::sensors_get_detected_chips(std::ptr::null_mut(), &mut self.index)
+        };
 
         if !ptr.is_null() {
-            unsafe {
-                Some(Chip::from_ptr(ptr))
-            }
-        }
-        else {
+            unsafe { Some(Chip::from_ptr(ptr)) }
+        } else {
             None
         }
     }
@@ -394,7 +384,7 @@ impl IntoIterator for Chip {
     fn into_iter(self) -> Self::IntoIter {
         FeatureIterator {
             index: 0,
-            chip_ptr: self.c_ptr()
+            chip_ptr: self.c_ptr(),
         }.into_iter()
     }
 }
@@ -406,11 +396,8 @@ impl Iterator for FeatureIterator {
         let ptr = unsafe { libsensors::sensors_get_features(self.chip_ptr, &mut self.index) };
 
         if !ptr.is_null() && !self.chip_ptr.is_null() {
-            unsafe {
-                Some(Feature::from_ptr(ptr, self.chip_ptr))
-            }
-        }
-        else {
+            unsafe { Some(Feature::from_ptr(ptr, self.chip_ptr)) }
+        } else {
             None
         }
     }
@@ -424,7 +411,7 @@ impl IntoIterator for Feature {
         SubfeatureIterator {
             index: 0,
             chip_ptr: self.chip_ptr,
-            feature_ptr: self.c_ptr()
+            feature_ptr: self.c_ptr(),
         }.into_iter()
     }
 }
@@ -433,15 +420,17 @@ impl Iterator for SubfeatureIterator {
     type Item = Subfeature;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let ptr = unsafe { libsensors::sensors_get_all_subfeatures(self.chip_ptr, self.feature_ptr, &mut self.index) };
+        let ptr = unsafe {
+            libsensors::sensors_get_all_subfeatures(
+                self.chip_ptr,
+                self.feature_ptr,
+                &mut self.index,
+            )
+        };
 
         if !ptr.is_null() {
-            unsafe {
-                Some(Subfeature::from_ptr(ptr, self.feature_ptr, self.chip_ptr))
-            }
-        }
-        else
-        {
+            unsafe { Some(Subfeature::from_ptr(ptr, self.feature_ptr, self.chip_ptr)) }
+        } else {
             None
         }
     }
