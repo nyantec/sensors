@@ -126,7 +126,6 @@ pub struct FeatureIterator {
 pub struct Subfeature {
     inner: *const libsensors::sensors_subfeature,
     chip_ptr: *const libsensors::sensors_chip_name,
-    feature_ptr: *const libsensors::sensors_feature,
     name: String,
     number: i32,
     subfeature_type: SubfeatureType,
@@ -294,7 +293,7 @@ impl Feature {
         };
 
         if !ptr.is_null() {
-            unsafe { Some(Subfeature::from_ptr(ptr, self.c_ptr(), self.chip_ptr)) }
+            unsafe { Some(Subfeature::from_ptr(ptr, self.chip_ptr)) }
         } else {
             None
         }
@@ -304,7 +303,6 @@ impl Feature {
 impl Subfeature {
     unsafe fn from_ptr(
         ptr: *const libsensors::sensors_subfeature,
-        feature: *const libsensors::sensors_feature,
         chip: *const libsensors::sensors_chip_name,
     ) -> Subfeature {
         let subfeature = *ptr;
@@ -312,7 +310,6 @@ impl Subfeature {
 
         Subfeature {
             inner: ptr,
-            feature_ptr: feature,
             chip_ptr: chip,
             name: name_cstr.to_string_lossy().into_owned(),
             number: subfeature.number,
@@ -429,7 +426,7 @@ impl Iterator for SubfeatureIterator {
         };
 
         if !ptr.is_null() {
-            unsafe { Some(Subfeature::from_ptr(ptr, self.feature_ptr, self.chip_ptr)) }
+            unsafe { Some(Subfeature::from_ptr(ptr, self.chip_ptr)) }
         } else {
             None
         }
