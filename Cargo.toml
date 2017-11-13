@@ -1,6 +1,6 @@
 [package]
 name = "sensors"
-version = "0.0.3"
+version = "0.1.0"
 authors = ["nyantec GmbH <dev@nyantec.com>"]
 license = "MirOS"
 build = "build.rs"
