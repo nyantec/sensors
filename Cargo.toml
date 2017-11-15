@@ -7,5 +7,5 @@ build = "build.rs"
 description = "A Rust-friendly interface to lm-sensors"
 
 [dependencies]
-libsensors-sys = "0.1.0"
+libsensors-sys = "~0.1"
 libc = "0.2.30"
