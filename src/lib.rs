@@ -32,17 +32,17 @@ impl LibsensorsError {
 		use self::LibsensorsError::*;
 
 		match e {
-			1 => Wildcards,
-			2 => NoEntry,
-			3 => AccessRead,
-			4 => Kernel,
-			5 => DivZero,
-			6 => ChipName,
-			7 => BusName,
-			8 => Parse,
-			9 => AccessWrite,
-			10 => IO,
-			11 => Recursion,
+			libsensors::SENSORS_ERR_WILDCARDS => Wildcards,
+			libsensors::SENSORS_ERR_NO_ENTRY => NoEntry,
+			libsensors::SENSORS_ERR_ACCESS_R => AccessRead,
+			libsensors::SENSORS_ERR_KERNEL => Kernel,
+			libsensors::SENSORS_ERR_DIV_ZERO => DivZero,
+			libsensors::SENSORS_ERR_CHIP_NAME => ChipName,
+			libsensors::SENSORS_ERR_BUS_NAME => BusName,
+			libsensors::SENSORS_ERR_PARSE => Parse,
+			libsensors::SENSORS_ERR_ACCESS_W => AccessWrite,
+			libsensors::SENSORS_ERR_IO => IO,
+			libsensors::SENSORS_ERR_RECURSION => Recursion,
 			_ => Unknown,
 		}
 	}

@@ -3,9 +3,8 @@ name = "sensors"
 version = "0.1.0"
 authors = ["nyantec GmbH <dev@nyantec.com>"]
 license = "MirOS"
-build = "build.rs"
 description = "A Rust-friendly interface to lm-sensors"
 
 [dependencies]
-libsensors-sys = "~0.1"
-libc = "0.2.30"
+libsensors-sys = "0.2"
+libc = "0.2"
