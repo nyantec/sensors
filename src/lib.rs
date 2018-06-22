@@ -11,7 +11,6 @@ use std::sync::{Once, ONCE_INIT};
 
 static INIT: Once = ONCE_INIT;
 
-
 #[derive(Copy, Clone, Debug)]
 pub enum LibsensorsError {
 	Wildcards,
@@ -33,17 +32,17 @@ impl LibsensorsError {
 		use self::LibsensorsError::*;
 
 		match e {
-			1 => Wildcards,
-			2 => NoEntry,
-			3 => AccessRead,
-			4 => Kernel,
-			5 => DivZero,
-			6 => ChipName,
-			7 => BusName,
-			8 => Parse,
-			9 => AccessWrite,
-			10 => IO,
-			11 => Recursion,
+			libsensors::SENSORS_ERR_WILDCARDS => Wildcards,
+			libsensors::SENSORS_ERR_NO_ENTRY => NoEntry,
+			libsensors::SENSORS_ERR_ACCESS_R => AccessRead,
+			libsensors::SENSORS_ERR_KERNEL => Kernel,
+			libsensors::SENSORS_ERR_DIV_ZERO => DivZero,
+			libsensors::SENSORS_ERR_CHIP_NAME => ChipName,
+			libsensors::SENSORS_ERR_BUS_NAME => BusName,
+			libsensors::SENSORS_ERR_PARSE => Parse,
+			libsensors::SENSORS_ERR_ACCESS_W => AccessWrite,
+			libsensors::SENSORS_ERR_IO => IO,
+			libsensors::SENSORS_ERR_RECURSION => Recursion,
 			_ => Unknown,
 		}
 	}
@@ -82,7 +81,6 @@ impl std::error::Error for LibsensorsError {
 	}
 }
 
-
 #[derive(Copy, Clone, Debug)]
 pub struct Sensors {
 	marker: PhantomData<()>,
@@ -104,6 +102,7 @@ pub struct Chip {
 }
 
 pub struct ChipIterator {
+	chip_name: Option<libsensors::sensors_chip_name>,
 	index: i32,
 }
 
@@ -146,12 +145,40 @@ impl Sensors {
 			assert_eq!(libc::atexit(Self::cleanup), 0);
 		});
 
-		Sensors { marker: PhantomData }
+		Sensors {
+			marker: PhantomData,
+		}
 	}
 
 	extern "C" fn cleanup() {
 		unsafe {
 			libsensors::sensors_cleanup();
+		}
+	}
+
+	/// Returns an iterator over all detected chips that match a given chip name
+	pub fn detected_chips<S: AsRef<str>>(&self, name: S) -> Result<ChipIterator, LibsensorsError> {
+		let c_name = std::ffi::CString::new(name.as_ref()).unwrap();
+		let mut chip_name = libsensors::sensors_chip_name {
+			prefix: std::ptr::null_mut(),
+			bus: libsensors::sensors_bus_id {
+				type_: Default::default(),
+				nr: Default::default(),
+			},
+			addr: Default::default(),
+			path: std::ptr::null_mut(),
+		};
+
+		let res = unsafe { libsensors::sensors_parse_chip_name(c_name.as_ptr(), &mut chip_name) };
+		if res == 0 {
+			let iterator = ChipIterator {
+				chip_name: Some(chip_name),
+				index: 0,
+			};
+
+			Ok(iterator)
+		} else {
+			Err(LibsensorsError::from_i32(res))
 		}
 	}
 }
@@ -352,7 +379,10 @@ impl IntoIterator for Sensors {
 	type IntoIter = ChipIterator;
 
 	fn into_iter(self) -> Self::IntoIter {
-		ChipIterator { index: 0 }.into_iter()
+		ChipIterator {
+			chip_name: None,
+			index: 0,
+		}.into_iter()
 	}
 }
 
@@ -360,15 +390,30 @@ impl Iterator for ChipIterator {
 	type Item = Chip;
 
 	fn next(&mut self) -> Option<Self::Item> {
-		let ptr = unsafe {
-			libsensors::sensors_get_detected_chips(std::ptr::null_mut(), &mut self.index)
-		};
+		let chip_name_ptr: *const libsensors::sensors_chip_name =
+			if let Some(chip_name) = self.chip_name {
+				&chip_name
+			} else {
+				std::ptr::null_mut()
+			};
+
+		let ptr = unsafe { libsensors::sensors_get_detected_chips(chip_name_ptr, &mut self.index) };
 
 		if !ptr.is_null() {
 			unsafe { Some(Chip::from_ptr(ptr)) }
 		} else {
 			None
 		}
+	}
+}
+
+impl Drop for ChipIterator {
+	fn drop(&mut self) {
+		if let Some(mut chip_name) = self.chip_name {
+			unsafe {
+				libsensors::sensors_free_chip_name(&mut chip_name);
+			}
+		};
 	}
 }
 
