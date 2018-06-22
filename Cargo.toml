@@ -4,6 +4,8 @@ version = "0.2.0"
 authors = ["nyantec GmbH <dev@nyantec.com>"]
 license = "MirOS"
 description = "A Rust-friendly interface to lm-sensors"
+categories = ["api-bindings", "hardware-support"]
+repository = "https://github.com/nyantec/sensors"
 
 [dependencies]
 libsensors-sys = "0.2"
