@@ -390,14 +390,7 @@ impl Iterator for ChipIterator {
 	type Item = Chip;
 
 	fn next(&mut self) -> Option<Self::Item> {
-		let chip_name_ptr: *const libsensors::sensors_chip_name =
-			if let Some(chip_name) = self.chip_name {
-				&chip_name
-			} else {
-				std::ptr::null_mut()
-			};
-
-		let ptr = unsafe { libsensors::sensors_get_detected_chips(chip_name_ptr, &mut self.index) };
+		let ptr = unsafe { libsensors::sensors_get_detected_chips(self.chip_name.as_ref().map_or(std::ptr::null(), |x| x), &mut self.index) };
 
 		if !ptr.is_null() {
 			unsafe { Some(Chip::from_ptr(ptr)) }
