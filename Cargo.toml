@@ -1,6 +1,6 @@
 [package]
 name = "sensors"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["nyantec GmbH <dev@nyantec.com>"]
 license = "MirOS"
 description = "A Rust-friendly interface to lm-sensors"
